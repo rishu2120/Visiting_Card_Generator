@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="hi">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Visiting Card Portal </title>
+
+  <!-- CDN libs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nenu+Einstellung&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    :root {
+      --card-bg: #ffffff;
+      --card-border: #e6e6e6;
+      --panel: #fafafa
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      line-height: 1.35;
+      margin: 18px;
+      background: #f6f7fb;
+      color: #111
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 20px
+    }
+
+    .top {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 12px
+    }
+
+    .card-panel {
+      background: var(--panel);
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--card-border)
+    }
+
+    input[type=file] {
+      display: block
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 6px;
+      display: block
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap
+    }
+
+    button {
+      cursor: pointer;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: #fff
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed
+    }
+
+    #cardsGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+      margin-top: 14px
+    }
+
+    .cardBox {
+      background: #fff;
+      border: 1px solid #eee;
+      padding: 10px;
+      border-radius: 8px
+    }
+
+    .visitingCard {
+      position: relative;
+      overflow: hidden;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06)
+    }
+
+    .card-text {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      right: 12px;
+      bottom: 12px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: center
+    }
+
+    .name {
+      font-weight: 800
+    }
+
+    .designation {
+      margin-top: 6px;
+      font-weight: 600;
+      opacity: .9
+    }
+
+    .phone,
+    .email {
+      margin-top: 6px;
+      font-size: 12px;
+      opacity: .85
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px
+    }
+
+    footer {
+      margin-top: 18px;
+      color: #666;
+      font-size: 13px
+    }
+
+    .small {
+      font-size: 13px;
+      color: #555
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Visiting Card Portal (HTML / CSS / JS)</h1>
+  <div class="top card-panel">
+    <div style="min-width:260px">
+      <label>1) Upload Excel (.xlsx / .csv)</label>
+      <input id="excelInput" type="file" accept=".xlsx,.xls,.csv" />
+      <div class="small">Headers should include: <code>Name</code>, <code>Designation</code>, <code>Phone</code>,
+        <code>Email</code> (case-insensitive)
+      </div>
+    </div>
+
+    <div style="min-width:220px">
+      <label>2) Upload Template Image (optional)</label>
+      <input id="templateInput" type="file" accept="image/*" />
+      <div class="small">If provided, text will be placed on top of this image.</div>
+    </div>
+
+    <div style="min-width:220px">
+      <label>3) Upload Fixed Image (will appear in every PDF)</label>
+      <input id="fixedImgInput" type="file" accept="image/*" />
+    </div>
+
+    <div style="min-width:160px">
+      <label>Card size (mm)</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <!-- Default card size changed to 112.6 x 67.6 mm -->
+        <input id="cardW" type="number" value="112.6" style="width:66px" /> x
+        <input id="cardH" type="number" value="67.6" style="width:66px" />
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <label style="opacity:.8">Actions</label>
+      <div style="display:flex;gap:6px">
+        <button id="generateBtn" disabled>Generate Cards</button>
+        <button id="zipBtn" disabled>Download All ZIP</button>
+        <button id="pdfBtn" disabled>Download PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="cardsGrid" aria-live="polite"></div>
+
+  <footer>
+    <div class="small">Notes: If your Excel headers use different words (eg. <code>Full Name</code>), the parser tries
+      to map common words (name/phone/email/designation). For exact results use the column names suggested above.</div>
+  </footer>
+
+  <script>
+    const excelInput = document.getElementById('excelInput');
+    const generateBtn = document.getElementById('generateBtn');
+    const zipBtn = document.getElementById('zipBtn');
+    const pdfBtn = document.getElementById('pdfBtn');
+    const cardsGrid = document.getElementById('cardsGrid');
+    const cardWInput = document.getElementById('cardW');
+    const cardHInput = document.getElementById('cardH');
+    const templateInput = document.getElementById('templateInput');
+    const fixedImgInput = document.getElementById('fixedImgInput');
+
+    let rows = [];
+    let templateURL = null;
+    let templateWidth = 0, templateHeight = 0;
+    let fixedImgURL = null;
+
+    // Template image upload
+    templateInput.addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      if (!f) { templateURL = null; return; }
+      templateURL = URL.createObjectURL(f);
+      const img = new Image();
+      img.onload = () => { templateWidth = img.width; templateHeight = img.height; };
+      img.src = templateURL;
+    });
+
+    // Fixed image upload
+    fixedImgInput.addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      if (!f) { fixedImgURL = null; return; }
+      fixedImgURL = URL.createObjectURL(f);
+    });
+
+    function mmToPx(mm) { return Math.round((mm / 25.4) * 96); }
+
+    // Excel parsing
+    excelInput.addEventListener('change', async (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const buf = await f.arrayBuffer();
+      let workbook;
+      try {
+        workbook = XLSX.read(buf, { type: 'array' });
+      } catch (err) {
+        const text = new TextDecoder().decode(buf);
+        const ws = XLSX.utils.sheet_to_json(XLSX.read(text, { type: 'string' }).Sheets.Sheet1, { defval: '' });
+        rows = ws;
+        enableGenerate();
+        return;
+      }
+      const first = workbook.SheetNames[0];
+      const ws = workbook.Sheets[first];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      rows = json.map(r => {
+        const keys = Object.keys(r);
+        const obj = { Name: '', Designation: '', Phone: '', Email: '' };
+        keys.forEach(k => {
+          const kl = k.toString().toLowerCase();
+          const v = r[k];
+          if (kl.includes('name')) obj.Name = v;
+          else if (kl.includes('desig') || kl.includes('role') || kl.includes('position') || kl.includes('title')) obj.Designation = v;
+          else if (kl.includes('phone') || kl.includes('mobile') || kl.includes('contact')) obj.Phone = v;
+          else if (kl.includes('email')) obj.Email = v;
+        });
+        if (!obj.Name && r.Name) obj.Name = r.Name;
+        if (!obj.Designation && (r.Designation || r.Role)) obj.Designation = r.Designation || r.Role || '';
+        if (!obj.Phone && (r.Phone || r.Mobile)) obj.Phone = r.Phone || r.Mobile || '';
+        if (!obj.Email && r.Email) obj.Email = r.Email;
+        return obj;
+      });
+      enableGenerate();
+    });
+
+    function enableGenerate() {
+      generateBtn.disabled = !(rows && rows.length > 0);
+      zipBtn.disabled = !(rows && rows.length > 0);
+      pdfBtn.disabled = !(rows && rows.length > 0);
+      cardsGrid.innerHTML = '';
+    }
+
+    generateBtn.addEventListener('click', () => {
+      renderCards();
+      cardsGrid.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    function renderCards() {
+      cardsGrid.innerHTML = '';
+      const w = mmToPx(Number(cardWInput.value || 112.6));
+      const h = mmToPx(Number(cardHInput.value || 67.6));
+      const baseW = mmToPx(90);
+      const baseH = mmToPx(50);
+      const scale = Math.min(w / baseW, h / baseH);
+
+      rows.forEach((r, i) => {
+        const box = document.createElement('div');
+        box.className = 'cardBox';
+        const cardWrap = document.createElement('div');
+        cardWrap.style.width = w + 'px';
+        cardWrap.style.height = h + 'px';
+        cardWrap.className = 'visitingCard';
+        cardWrap.style.position = 'relative';
+        cardWrap.style.overflow = 'hidden';
+
+        if (templateURL) {
+          const img = document.createElement('img');
+          img.src = templateURL;
+          img.style.width = '100%';
+          img.style.height = '100%';
+          img.style.objectFit = 'cover';
+          img.style.display = 'block';
+          cardWrap.appendChild(img);
+        }
+
+        const txt = document.createElement('div');
+        txt.className = 'card-text';
+        txt.style.position = 'absolute';
+        txt.style.top = (12 * scale) + 'px';
+        txt.style.left = (12 * scale) + 'px';
+        txt.style.right = (12 * scale) + 'px';
+        txt.style.bottom = (12 * scale) + 'px';
+        txt.style.pointerEvents = 'none';
+        txt.style.display = 'flex';
+        txt.style.flexDirection = 'column';
+        txt.style.justifyContent = 'flex-start';
+        txt.style.fontSize = (12 * scale) + 'px';
+        txt.style.color = '#222';
+
+        const nameEl = document.createElement('div');
+        nameEl.textContent = r.Name || 'Full Name';
+        nameEl.style.fontSize = (23 * scale) + 'px';
+        nameEl.style.fontWeight = '700';
+        nameEl.style.marginLeft = (25 * scale) + 'px';
+        nameEl.style.marginBottom = (8 * scale) + 'px';
+        nameEl.style.lineHeight = 1.2;
+        nameEl.style.fontFamily = "'Nenu Einstellung', sans-serif";
+        txt.appendChild(nameEl);
+
+        const desEl = document.createElement('div');
+        desEl.textContent = r.Designation || 'Designation';
+        desEl.style.fontSize = (10 * scale) + 'px';
+        desEl.style.marginBottom = (11 * scale) + 'px';
+        desEl.style.marginLeft = (25 * scale) + 'px';
+        desEl.style.fontFamily = "'Nenu Einstellung', sans-serif";
+        txt.appendChild(desEl);
+
+        const row1 = document.createElement('div');
+        row1.style.display = 'flex';
+        row1.style.marginBottom = (6 * scale) + 'px';
+        row1.style.marginLeft = (10 * scale) + 'px';
+        row1.style.gap = (75 * scale) + 'px';
+
+        const phoneEl = document.createElement('div');
+        phoneEl.textContent = r.Phone || 'Phone';
+        phoneEl.style.fontSize = (10 * scale) + 'px';
+        phoneEl.style.fontWeight = '400';
+        phoneEl.style.color = '#555555';
+        phoneEl.style.marginLeft = (34 * scale) + 'px';
+        phoneEl.style.fontFamily = "'Nenu Einstellung', sans-serif";
+        phoneEl.style.transform = `translateY(${-3 * scale}px)`;
+
+        const emailEl = document.createElement('div');
+        emailEl.textContent = r.Email || 'Email';
+        emailEl.style.fontSize = (10 * scale) + 'px';
+        emailEl.style.fontWeight = '400';
+        emailEl.style.color = '#555555';
+        emailEl.style.fontFamily = "'Nenu Einstellung', sans-serif";
+        emailEl.style.transform = `translateY(${-3 * scale}px)`;
+
+        row1.appendChild(phoneEl);
+        row1.appendChild(emailEl);
+        txt.appendChild(row1);
+
+        cardWrap.appendChild(txt);
+        cardWrap.id = `card-${i}`;
+        box.appendChild(cardWrap);
+
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        const dlBtn = document.createElement('button');
+        dlBtn.textContent = 'Download PNG';
+        dlBtn.addEventListener('click', () => downloadSingle(i));
+        actions.appendChild(dlBtn);
+        box.appendChild(actions);
+
+        cardsGrid.appendChild(box);
+      });
+    }
+
+    async function downloadSingle(i) {
+      const el = document.getElementById(`card-${i}`);
+      if (!el) return;
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+      canvas.toBlob(blob => {
+        const fname = `VisitingCard_${sanitize(rows[i].Name || ('person' + (i + 1)))}.png`;
+        saveAs(blob, fname);
+      }, 'image/png');
+    }
+
+    zipBtn.addEventListener('click', async () => {
+      if (!rows || rows.length === 0) return;
+      zipBtn.disabled = true; zipBtn.textContent = 'Preparing...';
+      const zip = new JSZip();
+      for (let i = 0; i < rows.length; i++) {
+        const el = document.getElementById(`card-${i}`);
+        if (!el) continue;
+        const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+        const dataUrl = canvas.toDataURL('image/png');
+        const base64 = dataUrl.split(',')[1];
+        zip.file(`VisitingCard_${i + 1}_${sanitize(rows[i].Name || 'person')}.png`, base64, { base64: true });
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      saveAs(blob, 'VisitingCards.zip');
+      zipBtn.disabled = false; zipBtn.textContent = 'Download All ZIP';
+    });
+
+    // ✅ Edited: visiting card at top, fixed image just below
+    pdfBtn.addEventListener('click', async () => {
+      if (!rows || rows.length === 0) return;
+      pdfBtn.disabled = true;
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+
+      const topGap = 10;        
+      const templateWidth = Number(cardWInput.value || 112.6);
+      const templateHeight = Number(cardHInput.value || 67.6);
+      const fixedImgHeight = 25;   
+      const fixedImgWidth = 112.6; 
+
+      for (let i = 0; i < rows.length; i++) {
+        const el = document.getElementById(`card-${i}`);
+        if (!el) continue;
+
+        // 1) Visiting card at top
+        const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+        const cardData = canvas.toDataURL('image/png');
+        const cardX = (pageW - templateWidth) / 2;
+        pdf.addImage(cardData, 'PNG', cardX, topGap, templateWidth, templateHeight);
+
+        // 2) Fixed image just below card
+        if (fixedImgURL) {
+          const img = await new Promise((resolve, reject) => {
+            const fimg = new Image();
+            fimg.onload = () => resolve(fimg);
+            fimg.onerror = () => reject('Failed to load fixed image');
+            fimg.src = fixedImgURL;
+          });
+         // ✅ Edited: fixed image size = template size
+const fixedX = (pageW - templateWidth) / 2;
+const fixedY = topGap + templateHeight + 5; // नीचे थोड़ी gap
+pdf.addImage(img, 'PNG', fixedX, fixedY, templateWidth, templateHeight);
+
+        }
+
+        if (i < rows.length - 1) pdf.addPage();
+      }
+
+      pdf.save('VisitingCards.pdf');
+      pdfBtn.disabled = false;
+    });
+
+    function sanitize(s) { return s.toString().replace(/[^a-z0-9\-_]/gi, '_'); }
+  </script>
+</body>
+</html>
