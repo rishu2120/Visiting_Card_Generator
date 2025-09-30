@@ -329,22 +329,23 @@
         nameEl.style.fontSize = (23 * scale) + 'px';
         nameEl.style.fontWeight = '700';
         nameEl.style.marginLeft = (25 * scale) + 'px';
-        nameEl.style.marginBottom = (8 * scale) + 'px';
+        nameEl.style.marginBottom = (2 * scale) + 'px';
         nameEl.style.lineHeight = 1.2;
-        nameEl.style.fontFamily = "'Nenu Einstellung', sans-serif";
+        nameEl.style.fontFamily = "'Neue Einstellung', sans-serif";
         txt.appendChild(nameEl);
 
         const desEl = document.createElement('div');
         desEl.textContent = r.Designation || 'Designation';
         desEl.style.fontSize = (10 * scale) + 'px';
-        desEl.style.marginBottom = (11 * scale) + 'px';
+        desEl.style.marginBottom = (13 * scale) + 'px';
         desEl.style.marginLeft = (25 * scale) + 'px';
-        desEl.style.fontFamily = "'Nenu Einstellung', sans-serif";
+        desEl.style.color='#737373';
+        desEl.style.fontFamily = "'Neue Einstellung', sans-serif";
         txt.appendChild(desEl);
 
         const row1 = document.createElement('div');
         row1.style.display = 'flex';
-        row1.style.marginBottom = (6 * scale) + 'px';
+        row1.style.marginBottom = (4 * scale) + 'px';
         row1.style.marginLeft = (10 * scale) + 'px';
         row1.style.gap = (75 * scale) + 'px';
 
@@ -352,18 +353,18 @@
         phoneEl.textContent = r.Phone || 'Phone';
         phoneEl.style.fontSize = (10 * scale) + 'px';
         phoneEl.style.fontWeight = '400';
-        phoneEl.style.color = '#555555';
+        phoneEl.style.color = '#737373';
         phoneEl.style.marginLeft = (34 * scale) + 'px';
-        phoneEl.style.fontFamily = "'Nenu Einstellung', sans-serif";
-        phoneEl.style.transform = `translateY(${-3 * scale}px)`;
+        phoneEl.style.fontFamily = "'Neue Einstellung', sans-serif";
+        phoneEl.style.transform = `translateY(${-0 * scale}px)`;
 
         const emailEl = document.createElement('div');
         emailEl.textContent = r.Email || 'Email';
         emailEl.style.fontSize = (10 * scale) + 'px';
         emailEl.style.fontWeight = '400';
-        emailEl.style.color = '#555555';
-        emailEl.style.fontFamily = "'Nenu Einstellung', sans-serif";
-        emailEl.style.transform = `translateY(${-3 * scale}px)`;
+        emailEl.style.color = '#737373';
+        emailEl.style.fontFamily = "'Neue Einstellung', sans-serif";
+        emailEl.style.transform = `translateY(${1 * scale}px)`;
 
         row1.appendChild(phoneEl);
         row1.appendChild(emailEl);
